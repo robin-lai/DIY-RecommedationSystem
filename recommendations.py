@@ -187,7 +187,7 @@ def getRecommendedItems(prefs,itemMatch,user):
       totalSim.setdefault(item2,0)
       totalSim[item2]+=similarity
 
-  rankings=[(score/totalSim[item],item) for item,score in scores.items( )]
+  rankings=[(score/totalSim[item],item) for item,score in scores.items()]
 
   rankings.sort( )
   rankings.reverse( )

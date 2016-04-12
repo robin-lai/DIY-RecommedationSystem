@@ -1,3 +1,4 @@
+from utils.utils import transformPrefs
 
 def euclidean(prefs,person1,person2):
     return None
@@ -36,21 +37,40 @@ def person_sim(prefs,person1,person2):
 基于物品相似度，返回中k_neighs最近邻物品
 '''
 def calculate_sim_item(item_prefs,item,k_neighs):
-    ratings = {}
+    ratings = [(person_sim(item_prefs,item,other),other)
+                        for other in item_prefs if item!=other]
+    ratings.sort()
+    ratings.reverse()
     return ratings[0:k_neighs]
 
 '''
 基于用户相似度，返回k_neighs最近邻用户
 '''
 def calculate_sim_user(user_prefs,user,k_neighs):
-    ratings = {}
-    return ratings[0:k_neighs]
+    # ratings = {}
+    # for other in user_prefs:
+    #     sim = person_sim(user_prefs,user,other)
+    #     ratings.setdefault(other,0)
+    #     ratings[other] = sim
+    # ret = [(sim,other) for other,sim in ratings.items()]
+    #ret = [(other,person_sim(user_prefs,user,other) for other in user_prefs if user!=other)]
+    ret = [(person_sim(user_prefs,user,other),other)
+                    for other in user_prefs if user!=other]
+    ret.sort()
+    ret.reverse()
+    return ret[0:k_neighs]
 
 '''
 用item_cf生成topN推荐列表
 '''
 def rec_by_item_cf(user_prefs,user,topN=10):
     rec={}
+    # 遍历user已评分的电影
+    for item in user_prefs[user]:
+        # 返回item的10个最近邻
+        neighs = calculate_sim_item(transformPrefs(user_prefs),item,10)
+        #
+
     return rec[0:topN]
 
 '''
@@ -58,7 +78,18 @@ def rec_by_item_cf(user_prefs,user,topN=10):
 '''
 def rec_by_user_cf(user_prefs,user,topN=10):
     rec={}
-    return rec[0:topN]
+    # 返回10个最近邻
+    neighs = calculate_sim_user(user_prefs,user,10)
+    # 遍历neighs
+    for (sim,neigh) in neighs:
+        # 遍历user评分过的电影
+        for item in user_prefs[neigh]:
+            rec.setdefault(item,.0)
+            rec[item]+=sim*user_prefs[neigh][item]
+    scores = [(score,item) for item,score in rec.items()]
+    scores.sort()
+    scores.reverse()
+    return scores[-topN:]
 
 '''
 为用户推荐哪些书？
