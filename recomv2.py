@@ -64,14 +64,21 @@ def calculate_sim_user(user_prefs,user,k_neighs):
 用item_cf生成topN推荐列表
 '''
 def rec_by_item_cf(user_prefs,user,topN=10):
+    user_ratings = user_prefs[user].items()
     rec={}
     # 遍历user已评分的电影
-    for item in user_prefs[user]:
+    for (item,rating) in user_ratings:
         # 返回item的10个最近邻
         neighs = calculate_sim_item(transformPrefs(user_prefs),item,10)
-        #
-
-    return rec[0:topN]
+        # 遍历相似电影并计算其评分
+        for sim,neigh_item in neighs:
+            #排除已购物品
+            if neigh_item in user_ratings:continue
+            rec.setdefault(neigh_item,0.0)
+            rec[neigh_item] += sim*rating
+    scores = [(score,item) for item,score in rec.items()]
+    scores.sort()
+    return scores[-topN:]
 
 '''
 用user_cf生成topN推荐列表
@@ -84,6 +91,8 @@ def rec_by_user_cf(user_prefs,user,topN=10):
     for (sim,neigh) in neighs:
         # 遍历user评分过的电影
         for item in user_prefs[neigh]:
+            # 排除已评分电影
+            if item in user_prefs[user]:continue
             rec.setdefault(item,.0)
             rec[item]+=sim*user_prefs[neigh][item]
     scores = [(score,item) for item,score in rec.items()]
