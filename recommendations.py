@@ -35,7 +35,9 @@ def sim_distance(prefs,person1,person2):
   # 计算欧拉距离
   sum_of_squares=sum([pow(prefs[person1][item]-prefs[person2][item],2) 
                       for item in prefs[person1] if item in prefs[person2]])
-
+  # 计算Euclidean
+  sum_of_squares2 = sum([pow(prefs[person1][item]-prefs[person2][item],2)
+                          for item in si])
   return 1/(1+sum_of_squares)
 
 '''
@@ -55,19 +57,19 @@ def sim_pearson(prefs,p1,p2):
   n=len(si)
   
   # 所有的评分和，EX,EY
-  sum1=sum([prefs[p1][it] for it in si])
-  sum2=sum([prefs[p2][it] for it in si])
+  sumX=sum([prefs[p1][it] for it in si])
+  sumY=sum([prefs[p2][it] for it in si])
 
-  # EX2,EY2
-  sum1Sq=sum([pow(prefs[p1][it],2) for it in si])
-  sum2Sq=sum([pow(prefs[p2][it],2) for it in si])	
+  # EX^2,EY^2
+  sumXsq=sum([pow(prefs[p1][it],2) for it in si])
+  sumYsq=sum([pow(prefs[p2][it],2) for it in si])
   
   # EXY
-  pSum=sum([prefs[p1][it]*prefs[p2][it] for it in si])
+  sumXY=sum([prefs[p1][it]*prefs[p2][it] for it in si])
   
   # 分子是EXY-EX*EY,分母是sqrt(E(X^2)-(EX)^2) * sqrt(E(Y^2)-(EY)^2)
-  num=pSum-(sum1*sum2/n)
-  den=sqrt((sum1Sq-pow(sum1,2)/n)*(sum2Sq-pow(sum2,2)/n))
+  num=sumXY-(sumX*sumY/n)
+  den=sqrt((sumXsq-pow(sumX,2)/n)*(sumYsq-pow(sumY,2)/n))
   if den==0: return 0
 
   r=num/den
@@ -82,8 +84,8 @@ def topMatches(prefs,person,n=5,similarity=sim_pearson):
   scores=[(similarity(prefs,person,other),other) 
                   for other in prefs if other!=person]
   scores.sort()
-  scores.reverse()
-  return scores[0:n]
+  #scores.reverse()
+  return scores[-n:]
 
 
 '''
@@ -109,12 +111,33 @@ def getRecommendations(prefs,person,similarity=sim_pearson):
         # 相似度和，用于归一化
         simSums.setdefault(item,0)
         simSums[item]+=sim
-
+  # 把dict->tuple list进行排序
   rankings=[(total/simSums[item],item) for item,total in totals.items()]
 
   rankings.sort()
   rankings.reverse()
   return rankings
+
+'''
+为person推荐item，根据userCF
+'''
+def userCFRecommendation(prefs,person,recNum=5,simMeasure=sim_pearson):
+  rec = {}
+  sumsim = 0.0
+  # 用户person的K个最近邻用户,neighs is tuple list
+  neighs = topMatches(prefs,person,n=5,similarity=sim_pearson)
+
+  # 遍历neighs
+  for tuples in neighs:
+    sim = tuples[0]
+    user = tuples[1]
+    for item in prefs[user]:
+      rec.setdefault(item,0)
+      rec[item] += sim*prefs[user][item]
+      sumsim += sim
+  ratings = [(rating/sumsim,item) for (rating,item) in rec.items()]
+  ratings.sort()
+  return ratings[-recNum:]
 
 # 反转User-Item，提高计算jaccard,cosine 相似度公式中的分子。
 def transformPrefs(prefs):
@@ -143,6 +166,7 @@ def calculateSimilarItems(prefs,n=10):
 
 '''
 基于Item的推荐.根据用户已买物品的N最近邻物品*相应权重
+为用户推荐什么书？
 '''
 def getRecommendedItems(prefs,itemMatch,user):
   userRatings=prefs[user]
@@ -168,6 +192,34 @@ def getRecommendedItems(prefs,itemMatch,user):
   rankings.sort( )
   rankings.reverse( )
   return rankings
+'''
+Item-basedCF
+'''
+def itemCFRecommendation(prefs,user,nrec=5,similarity=sim_pearson):
+  # 返回包含nrec的推荐列表
+  rec={}
+  # 计算user的k个最近邻
+  neighs = topMatches(prefs,user,n=5,similarity=sim_pearson)
+
+  # 遍历neighs
+  for tuple in neighs:
+    person = tuple[1]
+    sim = tuple[0]
+    #遍历perfs[person]
+    for item in prefs[person]:
+      # if item not in rec:
+      #   rec[item] = .0
+      # else:
+      #   rec[item]+=sim*prefs[person][item]
+      rec.setdefault(item,.0)
+      rec[item]+=sim*prefs[person][item]
+
+  # 把rec转换为tuple list 并排序
+  ratings = [(score,item) for item,score in rec.items()]
+  ratings.sort()
+  return ratings[-nrec:]
+
+
 
 '''
 用moviedLens data 做测试
