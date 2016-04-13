@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from utils.utils import transformPrefs
 
 def euclidean(prefs,person1,person2):
