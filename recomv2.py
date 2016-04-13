@@ -98,6 +98,9 @@ def rec_by_user_cf(user_prefs,user,topN=10):
     scores = [(score,item) for item,score in rec.items()]
     scores.sort()
     scores.reverse()
+    # simple way
+    # from operator import itemgetter
+    # scores = sorted(rec.items(),key=itemgetter(1))
     return scores[-topN:]
 
 '''
